@@ -1,4 +1,4 @@
-package dev.ryuya.legacysdkcompat
+package dev.ryuya.packageinstallercompat
 
 import android.annotation.SuppressLint
 import android.content.SharedPreferences
@@ -108,6 +108,6 @@ class HookEntry : XposedModule() {
     }
 
     private companion object {
-        const val TAG = "LegacySdkCompat"
+        const val TAG = "PackageInstallerCompat"
     }
 }

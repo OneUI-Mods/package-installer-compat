@@ -1,4 +1,4 @@
-package dev.ryuya.legacysdkcompat
+package dev.ryuya.packageinstallercompat
 
 import java.lang.reflect.Field
 

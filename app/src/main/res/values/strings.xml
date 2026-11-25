@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">Legacy SDK Compatibility</string>
+    <string name="app_name">Package Installer Compatibility</string>
     <string name="description">Compatibility controls for Android’s package installer.</string>
     <string name="allow_old_sdk">Allow low target SDK installs</string>
     <string name="low_target_detail">Allows APKs rejected only because their target SDK is too old.</string>

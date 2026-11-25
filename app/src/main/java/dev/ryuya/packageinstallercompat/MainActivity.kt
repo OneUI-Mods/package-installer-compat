@@ -1,4 +1,4 @@
-package dev.ryuya.legacysdkcompat
+package dev.ryuya.packageinstallercompat
 
 import android.os.Bundle
 import android.view.View

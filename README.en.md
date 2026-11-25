@@ -1,4 +1,4 @@
-# Legacy SDK Compatibility
+# Package Installer Compatibility
 
 [日本語](README.md)
 

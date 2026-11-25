@@ -9,7 +9,7 @@ test -z "$(git ls-files --others --exclude-standard)"
 
 output=app/build/outputs/apk/release
 version=$(jq -er '.elements[0].versionName' "$output/output-metadata.json")
-name="LegacySdkCompat-$version"
+name="PackageInstallerCompat-$version"
 staging=$(mktemp -d)
 trap 'rm -f "$staging/aligned.apk"; rmdir "$staging"' EXIT
 mkdir -p dist

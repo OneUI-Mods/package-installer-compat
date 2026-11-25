@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">Legacy SDK Compatibility</string>
+    <string name="app_name">パッケージインストーラー互換性</string>
     <string name="description">Androidのパッケージインストーラーに互換性設定を追加します。</string>
     <string name="allow_old_sdk">低いtarget SDKのインストールを許可</string>
     <string name="low_target_detail">target SDKが古いことだけを理由に拒否されたAPKを許可します。</string>

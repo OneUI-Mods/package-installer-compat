@@ -1,4 +1,4 @@
-package dev.ryuya.legacysdkcompat
+package dev.ryuya.packageinstallercompat
 
 internal object Settings {
     const val GROUP = "install_compatibility"
