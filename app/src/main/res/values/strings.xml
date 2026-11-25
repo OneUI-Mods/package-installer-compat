@@ -1,0 +1,9 @@
+<resources>
+    <string name="app_name">Legacy SDK Compatibility</string>
+    <string name="description">Allow apps with an old target SDK in Android’s package installer.</string>
+    <string name="allow_old_sdk">Allow low target SDK installs</string>
+    <string name="setting_detail">Applies to new installations and updates after the switch changes. Android continues checking signatures and version rules.</string>
+    <string name="connection_required">Enable this module for Android System in Vector and reload the framework once.</string>
+    <string name="framework_connected">Connected to %1$s</string>
+    <string name="setting_error">Could not save the setting.</string>
+</resources>

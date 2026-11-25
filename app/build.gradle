@@ -1,0 +1,32 @@
+plugins {
+    id 'com.android.application'
+}
+
+android {
+    namespace 'dev.ryuya.legacysdkcompat'
+    compileSdk {
+        version = release(37) { minorApiLevel = 2 }
+    }
+    buildToolsVersion '37.0.0'
+    defaultConfig {
+        applicationId 'dev.ryuya.legacysdkcompat'
+        minSdk 34
+        targetSdk 37
+        versionCode 1
+        versionName '0.1.0'
+    }
+    buildFeatures {
+        buildConfig true
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
+
+dependencies {
+    implementation 'com.google.android.material:material:1.14.0'
+    implementation 'io.github.libxposed:service:102.0.0'
+    compileOnly 'io.github.libxposed:api:102.0.0'
+    testImplementation 'junit:junit:4.13.2'
+}

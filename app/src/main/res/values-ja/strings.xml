@@ -1,0 +1,9 @@
+<resources>
+    <string name="app_name">Legacy SDK Compatibility</string>
+    <string name="description">Androidのパッケージインストーラーで、target SDKが古いアプリを許可します。</string>
+    <string name="allow_old_sdk">低いtarget SDKのインストールを許可</string>
+    <string name="setting_detail">切り替え後に開始したインストールと更新に適用します。署名とバージョンの検証はAndroidが行います。</string>
+    <string name="connection_required">Vectorでこのモジュールを「Androidシステム」に適用し、初回だけフレームワークを読み込み直してください。</string>
+    <string name="framework_connected">%1$sに接続済み</string>
+    <string name="setting_error">設定を保存できませんでした。</string>
+</resources>

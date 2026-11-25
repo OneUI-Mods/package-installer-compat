@@ -1,0 +1,7 @@
+.gradle/
+.kotlin/
+build/
+.signing/
+dist/
+local.properties
+.DS_Store
