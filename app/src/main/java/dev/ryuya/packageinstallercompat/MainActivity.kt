@@ -1,45 +1,41 @@
 package dev.ryuya.packageinstallercompat
 
+import android.content.res.Configuration
 import android.os.Bundle
-import android.widget.LinearLayout
-import android.widget.ScrollView
+import android.view.View
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
+import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
+import com.google.android.material.R as MaterialR
+import com.google.android.material.card.MaterialCardView
+import com.google.android.material.color.MaterialColors
 import com.google.android.material.materialswitch.MaterialSwitch
 
 class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        setContentView(R.layout.activity_main)
+        val nightMode = resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK
+        val lightBackground = nightMode != Configuration.UI_MODE_NIGHT_YES
+        WindowCompat.getInsetsController(window, window.decorView).apply {
+            isAppearanceLightStatusBars = lightBackground
+            isAppearanceLightNavigationBars = lightBackground
+        }
+
         val app = application as CompatApplication
-        val body = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
-        val scroll = ScrollView(this).apply { addView(body) }
-        ViewCompat.setOnApplyWindowInsetsListener(body) { view, insets ->
-            val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout())
-            view.setPadding(bars.left + dp(24), bars.top + dp(24), bars.right + dp(24), bars.bottom + dp(24))
+        val scroll = findViewById<View>(R.id.settings_scroll)
+        val lowTargetToggle = findViewById<MaterialSwitch>(R.id.low_target_toggle)
+        val statusCard = findViewById<MaterialCardView>(R.id.status_card)
+        val status = findViewById<TextView>(R.id.connection_status)
+
+        ViewCompat.setOnApplyWindowInsetsListener(scroll) { view, insets ->
+            val safeArea = WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout()
+            val bars = insets.getInsets(safeArea)
+            view.setPadding(bars.left, bars.top, bars.right, bars.bottom)
             insets
         }
-        body.addView(TextView(this).apply {
-            setText(R.string.app_name)
-            textSize = 26f
-        })
-        body.addView(TextView(this).apply {
-            setText(R.string.description)
-            setPadding(0, dp(12), 0, dp(24))
-        })
-        val lowTargetToggle = MaterialSwitch(this).apply {
-            setText(R.string.allow_old_sdk)
-            minHeight = dp(52)
-        }
-        body.addView(lowTargetToggle)
-        body.addView(TextView(this).apply {
-            setText(R.string.low_target_detail)
-            setPadding(0, dp(8), 0, dp(20))
-        })
-        val status = TextView(this)
-        body.addView(status)
-        setContentView(scroll)
 
         app.connection.observe(this) { state ->
             lowTargetToggle.setOnCheckedChangeListener(null)
@@ -48,13 +44,23 @@ class MainActivity : AppCompatActivity() {
             lowTargetToggle.setOnCheckedChangeListener { _, enabled ->
                 app.setLowTargetSdkAllowed(enabled)
             }
-            status.text = when {
-                state.saveFailed -> getString(R.string.setting_error)
-                state.framework != null -> getString(R.string.framework_connected, state.framework)
-                else -> getString(R.string.connection_required)
-            }
+            renderConnectionStatus(state, statusCard, status)
         }
     }
 
-    private fun dp(value: Int) = (value * resources.displayMetrics.density).toInt()
+    private fun renderConnectionStatus(state: Connection, card: MaterialCardView, text: TextView) {
+        val message = when {
+            state.saveFailed -> getString(R.string.setting_error)
+            state.framework != null -> getString(R.string.framework_connected, state.framework)
+            else -> getString(R.string.connection_required)
+        }
+        val (containerColor, textColor) = when {
+            state.saveFailed -> MaterialR.attr.colorErrorContainer to MaterialR.attr.colorOnErrorContainer
+            state.framework != null -> MaterialR.attr.colorSecondaryContainer to MaterialR.attr.colorOnSecondaryContainer
+            else -> MaterialR.attr.colorSurfaceContainer to MaterialR.attr.colorOnSurfaceVariant
+        }
+        card.setCardBackgroundColor(MaterialColors.getColor(card, containerColor))
+        text.setTextColor(MaterialColors.getColor(text, textColor))
+        text.text = message
+    }
 }
