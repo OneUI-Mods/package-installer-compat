@@ -11,11 +11,10 @@ class TemporaryInstallFlagTest {
     private val lowTargetMask = 1 shl 24
     private val requestDowngradeMask = 1 shl 7
     private val allowDowngradeMask = 1 shl 20
-    private val supportedMask = lowTargetMask or requestDowngradeMask or allowDowngradeMask
-    private val scope = TemporaryInstallFlags(
+    private val scope = TemporaryInstallFlag(
         Request::class.java.getDeclaredField("args").apply { isAccessible = true },
         Args::class.java.getDeclaredField("flags").apply { isAccessible = true },
-        supportedMask,
+        lowTargetMask,
     )
 
     @Test
@@ -23,7 +22,7 @@ class TemporaryInstallFlagTest {
         val args = Args(4)
         val request = Request(args)
         runCatching {
-            requireNotNull(scope.addTo(request, lowTargetMask)).use {
+            requireNotNull(scope.addTo(request)).use {
                 assertEquals(4 or lowTargetMask, args.flags)
                 args.flags = args.flags or 32
                 throw IllegalStateException("Synthetic install rejection")
@@ -35,27 +34,26 @@ class TemporaryInstallFlagTest {
     @Test
     fun leavesAnAlreadyAuthorizedFlagAndAbsentInstallArgumentsAlone() {
         val args = Args(lowTargetMask or 4)
-        assertNull(scope.addTo(Request(args), lowTargetMask))
+        assertNull(scope.addTo(Request(args)))
         assertEquals(lowTargetMask or 4, args.flags)
-        assertNull(scope.addTo(Request(null), lowTargetMask))
-        assertNull(scope.addTo(Request(args), 0))
+        assertNull(scope.addTo(Request(null)))
     }
 
     @Test
-    fun addsBothDowngradeBitsAndRestoresOnlyTheMissingOne() {
+    fun preservesExistingRequestFlagsWithoutAddingDowngradePermissions() {
         val args = Args(requestDowngradeMask or 4)
-        requireNotNull(
-            scope.addTo(Request(args), requestDowngradeMask or allowDowngradeMask),
-        ).use {
-            assertEquals(requestDowngradeMask or allowDowngradeMask or 4, args.flags)
-            args.flags = args.flags or 32
+        requireNotNull(scope.addTo(Request(args))).use {
+            assertEquals(requestDowngradeMask or lowTargetMask or 4, args.flags)
         }
-        assertEquals(requestDowngradeMask or 4 or 32, args.flags)
+        assertEquals(requestDowngradeMask or 4, args.flags)
     }
 
     @Test(expected = IllegalArgumentException::class)
-    fun rejectsSignatureVerificationBypassFlag() {
-        val installDisableVerification = 0x00080000
-        scope.addTo(Request(Args(0)), installDisableVerification)
+    fun rejectsMultipleFlags() {
+        TemporaryInstallFlag(
+            Request::class.java.getDeclaredField("args"),
+            Args::class.java.getDeclaredField("flags"),
+            lowTargetMask or allowDowngradeMask,
+        )
     }
 }

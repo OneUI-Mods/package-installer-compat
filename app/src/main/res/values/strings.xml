@@ -1,10 +1,8 @@
 <resources>
     <string name="app_name">Package Installer Compatibility</string>
-    <string name="description">Compatibility controls for Android’s package installer.</string>
+    <string name="description">Low target SDK compatibility for Android’s package installer.</string>
     <string name="allow_old_sdk">Allow low target SDK installs</string>
     <string name="low_target_detail">Allows APKs rejected only because their target SDK is too old.</string>
-    <string name="allow_same_signature_downgrade">Allow same-signature downgrades</string>
-    <string name="downgrade_detail">Allows an older version only when Android confirms the installed app and APK have the same signing identity. App data may not support older versions.</string>
     <string name="connection_required">Enable this module for Android System in Vector and reload the framework once.</string>
     <string name="framework_connected">Connected to %1$s</string>
     <string name="setting_error">Could not save the setting.</string>

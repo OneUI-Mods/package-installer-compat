@@ -27,7 +27,7 @@ class HookEntry : XposedModule() {
     }
 
     override fun onHotReloaded(param: HotReloadedParam) {
-        if (param.processName != "system_server") return
+        if (!param.isSystemServer) return
         val loader = param.savedInstanceState as? ClassLoader ?: return
         if (register(loader)) {
             param.oldHookHandles.forEach { it.unhook() }
@@ -35,21 +35,10 @@ class HookEntry : XposedModule() {
         }
     }
 
-    private data class Options(
-        val allowLowTargetSdk: Boolean,
-        val allowSameSignatureDowngrade: Boolean,
-    )
-
-    private fun options(): Options = runCatching {
+    private fun allowsLowTargetSdk(): Boolean = runCatching {
         val settings = preferences ?: getRemotePreferences(Settings.GROUP).also { preferences = it }
-        Options(
-            allowLowTargetSdk = settings.getBoolean(Settings.ALLOW_LOW_TARGET_SDK, false),
-            allowSameSignatureDowngrade = settings.getBoolean(
-                Settings.ALLOW_SAME_SIGNATURE_DOWNGRADE,
-                false,
-            ),
-        )
-    }.getOrDefault(Options(false, false))
+        settings.getBoolean(Settings.ALLOW_LOW_TARGET_SDK, false)
+    }.getOrDefault(false)
 
     @SuppressLint("BlockedPrivateApi", "SoonBlockedPrivateApi")
     private fun register(loader: ClassLoader): Boolean = runCatching {
@@ -66,30 +55,14 @@ class HookEntry : XposedModule() {
         val lowTargetMask = PackageManager::class.java
             .getDeclaredField("INSTALL_BYPASS_LOW_TARGET_SDK_BLOCK")
             .apply { isAccessible = true }.getInt(null)
-        val requestDowngradeMask = PackageManager::class.java
-            .getDeclaredField("INSTALL_REQUEST_DOWNGRADE")
-            .apply { isAccessible = true }.getInt(null)
-        val allowDowngradeMask = PackageManager::class.java
-            .getDeclaredField("INSTALL_ALLOW_DOWNGRADE")
-            .apply { isAccessible = true }.getInt(null)
-        val supportedMask = lowTargetMask or requestDowngradeMask or allowDowngradeMask
-        check(Integer.bitCount(lowTargetMask) == 1)
-        check(Integer.bitCount(requestDowngradeMask) == 1)
-        check(Integer.bitCount(allowDowngradeMask) == 1)
-        check(Integer.bitCount(supportedMask) == 3)
-        val scopedFlags = TemporaryInstallFlags(args, flags, supportedMask)
+        val scopedFlag = TemporaryInstallFlag(args, flags, lowTargetMask)
 
         hook(prepare).setId("legacy-sdk-package-prepare")
             .setExceptionMode(ExceptionMode.PROTECTIVE)
             .intercept { chain ->
-                val selected = options()
-                val requestedMask =
-                    (if (selected.allowLowTargetSdk) lowTargetMask else 0) or
-                    (if (selected.allowSameSignatureDowngrade) {
-                        requestDowngradeMask or allowDowngradeMask
-                    } else 0)
+                if (!allowsLowTargetSdk()) return@intercept chain.proceed()
                 val change = runCatching {
-                    scopedFlags.addTo(chain.getArg(0), requestedMask)
+                    scopedFlag.addTo(chain.getArg(0))
                 }.getOrNull()
                 try {
                     chain.proceed()

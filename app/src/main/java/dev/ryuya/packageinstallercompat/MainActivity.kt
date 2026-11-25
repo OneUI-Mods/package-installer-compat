@@ -1,7 +1,6 @@
 package dev.ryuya.packageinstallercompat
 
 import android.os.Bundle
-import android.view.View
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
@@ -38,31 +37,16 @@ class MainActivity : AppCompatActivity() {
             setText(R.string.low_target_detail)
             setPadding(0, dp(8), 0, dp(20))
         })
-        val downgradeToggle = MaterialSwitch(this).apply {
-            setText(R.string.allow_same_signature_downgrade)
-            minHeight = dp(52)
-        }
-        body.addView(downgradeToggle)
-        body.addView(TextView(this).apply {
-            setText(R.string.downgrade_detail)
-            setPadding(0, dp(8), 0, dp(20))
-        })
         val status = TextView(this)
         body.addView(status)
         setContentView(scroll)
 
         app.connection.observe(this) { state ->
             lowTargetToggle.setOnCheckedChangeListener(null)
-            lowTargetToggle.isEnabled = state.framework != null && state.savingKey == null
+            lowTargetToggle.isEnabled = state.framework != null && !state.saving
             lowTargetToggle.isChecked = state.allowLowTargetSdk
             lowTargetToggle.setOnCheckedChangeListener { _, enabled ->
-                app.setEnabled(Settings.ALLOW_LOW_TARGET_SDK, enabled)
-            }
-            downgradeToggle.setOnCheckedChangeListener(null)
-            downgradeToggle.isEnabled = state.framework != null && state.savingKey == null
-            downgradeToggle.isChecked = state.allowSameSignatureDowngrade
-            downgradeToggle.setOnCheckedChangeListener { _, enabled ->
-                app.setEnabled(Settings.ALLOW_SAME_SIGNATURE_DOWNGRADE, enabled)
+                app.setLowTargetSdkAllowed(enabled)
             }
             status.text = when {
                 state.saveFailed -> getString(R.string.setting_error)
