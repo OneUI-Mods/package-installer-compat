@@ -29,13 +29,22 @@ class MainActivity : AppCompatActivity() {
             setText(R.string.description)
             setPadding(0, dp(12), 0, dp(24))
         })
-        val toggle = MaterialSwitch(this).apply {
+        val lowTargetToggle = MaterialSwitch(this).apply {
             setText(R.string.allow_old_sdk)
             minHeight = dp(52)
         }
-        body.addView(toggle)
+        body.addView(lowTargetToggle)
         body.addView(TextView(this).apply {
-            setText(R.string.setting_detail)
+            setText(R.string.low_target_detail)
+            setPadding(0, dp(8), 0, dp(20))
+        })
+        val downgradeToggle = MaterialSwitch(this).apply {
+            setText(R.string.allow_same_signature_downgrade)
+            minHeight = dp(52)
+        }
+        body.addView(downgradeToggle)
+        body.addView(TextView(this).apply {
+            setText(R.string.downgrade_detail)
             setPadding(0, dp(8), 0, dp(20))
         })
         val status = TextView(this)
@@ -43,10 +52,18 @@ class MainActivity : AppCompatActivity() {
         setContentView(scroll)
 
         app.connection.observe(this) { state ->
-            toggle.setOnCheckedChangeListener(null)
-            toggle.isEnabled = state.framework != null && !state.saving
-            toggle.isChecked = state.enabled
-            toggle.setOnCheckedChangeListener { _, enabled -> app.setEnabled(enabled) }
+            lowTargetToggle.setOnCheckedChangeListener(null)
+            lowTargetToggle.isEnabled = state.framework != null && state.savingKey == null
+            lowTargetToggle.isChecked = state.allowLowTargetSdk
+            lowTargetToggle.setOnCheckedChangeListener { _, enabled ->
+                app.setEnabled(Settings.ALLOW_LOW_TARGET_SDK, enabled)
+            }
+            downgradeToggle.setOnCheckedChangeListener(null)
+            downgradeToggle.isEnabled = state.framework != null && state.savingKey == null
+            downgradeToggle.isChecked = state.allowSameSignatureDowngrade
+            downgradeToggle.setOnCheckedChangeListener { _, enabled ->
+                app.setEnabled(Settings.ALLOW_SAME_SIGNATURE_DOWNGRADE, enabled)
+            }
             status.text = when {
                 state.saveFailed -> getString(R.string.setting_error)
                 state.framework != null -> getString(R.string.framework_connected, state.framework)

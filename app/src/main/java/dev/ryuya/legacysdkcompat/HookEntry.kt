@@ -1,5 +1,6 @@
 package dev.ryuya.legacysdkcompat
 
+import android.annotation.SuppressLint
 import android.content.SharedPreferences
 import android.content.pm.PackageManager
 import android.os.Process
@@ -34,11 +35,23 @@ class HookEntry : XposedModule() {
         }
     }
 
-    private fun enabled(): Boolean = runCatching {
-        val settings = preferences ?: getRemotePreferences(Settings.GROUP).also { preferences = it }
-        settings.getBoolean(Settings.ALLOW_LOW_TARGET_SDK, false)
-    }.getOrDefault(false)
+    private data class Options(
+        val allowLowTargetSdk: Boolean,
+        val allowSameSignatureDowngrade: Boolean,
+    )
 
+    private fun options(): Options = runCatching {
+        val settings = preferences ?: getRemotePreferences(Settings.GROUP).also { preferences = it }
+        Options(
+            allowLowTargetSdk = settings.getBoolean(Settings.ALLOW_LOW_TARGET_SDK, false),
+            allowSameSignatureDowngrade = settings.getBoolean(
+                Settings.ALLOW_SAME_SIGNATURE_DOWNGRADE,
+                false,
+            ),
+        )
+    }.getOrDefault(Options(false, false))
+
+    @SuppressLint("BlockedPrivateApi", "SoonBlockedPrivateApi")
     private fun register(loader: ClassLoader): Boolean = runCatching {
         val request = loader.loadClass("com.android.server.pm.InstallRequest")
         val helper = loader.loadClass("com.android.server.pm.InstallPackageHelper")
@@ -50,17 +63,34 @@ class HookEntry : XposedModule() {
         check(args.type.name == "com.android.server.pm.InstallArgs")
         val flags = args.type.getDeclaredField("mInstallFlags").apply { isAccessible = true }
         check(flags.type == Int::class.javaPrimitiveType && !Modifier.isFinal(flags.modifiers))
-        val mask = PackageManager::class.java.getDeclaredField("INSTALL_BYPASS_LOW_TARGET_SDK_BLOCK")
+        val lowTargetMask = PackageManager::class.java
+            .getDeclaredField("INSTALL_BYPASS_LOW_TARGET_SDK_BLOCK")
             .apply { isAccessible = true }.getInt(null)
-        check(Integer.bitCount(mask) == 1)
-        val exception = TemporaryInstallFlag(args, flags, mask)
+        val requestDowngradeMask = PackageManager::class.java
+            .getDeclaredField("INSTALL_REQUEST_DOWNGRADE")
+            .apply { isAccessible = true }.getInt(null)
+        val allowDowngradeMask = PackageManager::class.java
+            .getDeclaredField("INSTALL_ALLOW_DOWNGRADE")
+            .apply { isAccessible = true }.getInt(null)
+        val supportedMask = lowTargetMask or requestDowngradeMask or allowDowngradeMask
+        check(Integer.bitCount(lowTargetMask) == 1)
+        check(Integer.bitCount(requestDowngradeMask) == 1)
+        check(Integer.bitCount(allowDowngradeMask) == 1)
+        check(Integer.bitCount(supportedMask) == 3)
+        val scopedFlags = TemporaryInstallFlags(args, flags, supportedMask)
 
         hook(prepare).setId("legacy-sdk-package-prepare")
             .setExceptionMode(ExceptionMode.PROTECTIVE)
             .intercept { chain ->
-                val change = if (enabled()) {
-                    runCatching { exception.addTo(chain.getArg(0)) }.getOrNull()
-                } else null
+                val selected = options()
+                val requestedMask =
+                    (if (selected.allowLowTargetSdk) lowTargetMask else 0) or
+                    (if (selected.allowSameSignatureDowngrade) {
+                        requestDowngradeMask or allowDowngradeMask
+                    } else 0)
+                val change = runCatching {
+                    scopedFlags.addTo(chain.getArg(0), requestedMask)
+                }.getOrNull()
                 try {
                     chain.proceed()
                 } finally {
@@ -70,7 +100,7 @@ class HookEntry : XposedModule() {
                 }
             }
         hostLoader = loader
-        Log.i(TAG, "LOW_TARGET_HOOK_READY ${prepare.name}")
+        Log.i(TAG, "INSTALL_COMPAT_HOOK_READY ${prepare.name}")
         true
     }.getOrElse {
         Log.w(TAG, "Package installer layout unsupported", it)

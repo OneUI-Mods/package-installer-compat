@@ -13,8 +13,9 @@ import java.util.concurrent.TimeUnit
 
 internal data class Connection(
     val framework: String? = null,
-    val enabled: Boolean = false,
-    val saving: Boolean = false,
+    val allowLowTargetSdk: Boolean = false,
+    val allowSameSignatureDowngrade: Boolean = false,
+    val savingKey: String? = null,
     val saveFailed: Boolean = false,
 )
 
@@ -39,7 +40,14 @@ class CompatApplication : Application() {
                             val settings = bound.getRemotePreferences(Settings.GROUP)
                             settings to Connection(
                                 framework = bound.frameworkName,
-                                enabled = settings.getBoolean(Settings.ALLOW_LOW_TARGET_SDK, false),
+                                allowLowTargetSdk = settings.getBoolean(
+                                    Settings.ALLOW_LOW_TARGET_SDK,
+                                    false,
+                                ),
+                                allowSameSignatureDowngrade = settings.getBoolean(
+                                    Settings.ALLOW_SAME_SIGNATURE_DOWNGRADE,
+                                    false,
+                                ),
                             )
                         }.getOrNull() ?: return@execute
                         main.post {
@@ -64,20 +72,31 @@ class CompatApplication : Application() {
         })
     }
 
-    internal fun setEnabled(enabled: Boolean) {
+    internal fun setEnabled(key: String, enabled: Boolean) {
+        require(
+            key == Settings.ALLOW_LOW_TARGET_SDK ||
+                key == Settings.ALLOW_SAME_SIGNATURE_DOWNGRADE,
+        )
         val settings = preferences ?: return
         val previous = connection.value ?: return
-        if (previous.saving) return
-        connection.value = previous.copy(saving = true, saveFailed = false)
+        if (previous.savingKey != null) return
+        connection.value = previous.copy(savingKey = key, saveFailed = false)
         worker.execute {
             val saved = runCatching {
-                settings.edit().putBoolean(Settings.ALLOW_LOW_TARGET_SDK, enabled).commit()
+                settings.edit().putBoolean(key, enabled).commit()
             }.getOrDefault(false)
             main.post {
                 if (preferences !== settings) return@post
                 connection.value = previous.copy(
-                    enabled = if (saved) enabled else previous.enabled,
-                    saving = false,
+                    allowLowTargetSdk = if (saved && key == Settings.ALLOW_LOW_TARGET_SDK) {
+                        enabled
+                    } else previous.allowLowTargetSdk,
+                    allowSameSignatureDowngrade = if (
+                        saved && key == Settings.ALLOW_SAME_SIGNATURE_DOWNGRADE
+                    ) {
+                        enabled
+                    } else previous.allowSameSignatureDowngrade,
+                    savingKey = null,
                     saveFailed = !saved,
                 )
             }
