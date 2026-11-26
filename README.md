@@ -1,5 +1,7 @@
 # Package Installer Compatibility
 
+インストールにはAndroid 17（API 37）以降が必要です。
+
 [English](README.en.md)
 
 Samsungの純正パッケージインストーラーで、古いtarget SDKを指定するAPKをインストールできるようにするVectorモジュールです。root環境とlibxposed API 102対応Vectorが必要です。

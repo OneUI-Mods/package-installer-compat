@@ -1,5 +1,7 @@
 # Package Installer Compatibility
 
+Installation requires Android 17 (API 37) or later.
+
 [日本語](README.md)
 
 A Vector module that allows Samsung's package installer to install APKs with an older target SDK. Root and a Vector build with libxposed API 102 are required.
